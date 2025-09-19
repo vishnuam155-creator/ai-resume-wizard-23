@@ -8,6 +8,8 @@ import { ResumePreview } from '@/components/ResumePreview';
 import { ContactsForm } from '@/components/forms/ContactsForm';
 import { ExperienceForm } from '@/components/forms/ExperienceForm';
 import { EducationForm } from '@/components/forms/EducationForm';
+import { CertificatesForm } from '@/components/forms/CertificatesForm';
+import { ProjectsForm } from '@/components/forms/ProjectsForm';
 import { SkillsForm } from '@/components/forms/SkillsForm';
 import { SummaryForm } from '@/components/forms/SummaryForm';
 import { FinalizeForm } from '@/components/forms/FinalizeForm';
@@ -27,6 +29,12 @@ const Index = () => {
     addEducation,
     updateEducation,
     removeEducation,
+    addCertificate,
+    updateCertificate,
+    removeCertificate,
+    addProject,
+    updateProject,
+    removeProject,
     addSkill,
     updateSkill,
     removeSkill,
@@ -34,7 +42,7 @@ const Index = () => {
     getStepCompletionStatus
   } = useResumeData();
 
-  const steps: ResumeStep[] = ['contacts', 'experience', 'education', 'skills', 'summary', 'finalize'];
+  const steps: ResumeStep[] = ['contacts', 'experience', 'education', 'certificates', 'projects', 'skills', 'summary', 'finalize'];
   const currentStepIndex = steps.indexOf(currentStep);
   const score = calculateCompletionScore();
 
@@ -73,6 +81,24 @@ const Index = () => {
             onRemoveEducation={removeEducation}
           />
         );
+      case 'certificates':
+        return (
+          <CertificatesForm
+            data={resumeData.certificates}
+            onAddCertificate={addCertificate}
+            onUpdateCertificate={updateCertificate}
+            onRemoveCertificate={removeCertificate}
+          />
+        );
+      case 'projects':
+        return (
+          <ProjectsForm
+            data={resumeData.projects}
+            onAddProject={addProject}
+            onUpdateProject={updateProject}
+            onRemoveProject={removeProject}
+          />
+        );
       case 'skills':
         return (
           <SkillsForm
@@ -99,6 +125,8 @@ const Index = () => {
       contacts: 'Contacts',
       experience: 'Experience', 
       education: 'Education',
+      certificates: 'Certificates',
+      projects: 'Projects',
       skills: 'Skills',
       summary: 'Summary',
       finalize: 'Finalize'
@@ -117,20 +145,20 @@ const Index = () => {
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-8">
           {/* Left Panel - Form */}
-          <div className="lg:col-span-2">
-            <Card className="p-8 shadow-medium border border-border">
+          <div className="xl:col-span-2 order-2 xl:order-1">
+            <Card className="p-4 sm:p-6 lg:p-8 shadow-medium border border-border">
               {renderStepForm()}
               
               {/* Navigation */}
-              <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border space-y-4 sm:space-y-0">
                 <Button
                   variant="outline"
                   onClick={goToPreviousStep}
                   disabled={currentStepIndex === 0}
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 w-full sm:w-auto order-2 sm:order-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Back</span>
@@ -139,7 +167,7 @@ const Index = () => {
                 <Button
                   onClick={goToNextStep}
                   disabled={currentStepIndex === steps.length - 1}
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 w-full sm:w-auto order-1 sm:order-2"
                 >
                   <span>Next: {getNextStepTitle()}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -149,9 +177,9 @@ const Index = () => {
           </div>
 
           {/* Right Panel - Preview & Score */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6 order-1 xl:order-2">
             <ResumeScore score={score} />
-            <div className="sticky top-6">
+            <div className="xl:sticky xl:top-6">
               <ResumePreview data={resumeData} />
             </div>
           </div>

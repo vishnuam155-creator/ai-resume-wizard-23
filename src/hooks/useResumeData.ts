@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ResumeData, ResumeStep, Experience, Education, Certificate, Skill } from '@/types/resume';
+import { ResumeData, ResumeStep, Experience, Education, Certificate, Project, Skill } from '@/types/resume';
 
 const initialResumeData: ResumeData = {
   contacts: {
@@ -16,6 +16,7 @@ const initialResumeData: ResumeData = {
   experience: [],
   education: [],
   certificates: [],
+  projects: [],
   skills: []
 };
 
@@ -135,6 +136,33 @@ export const useResumeData = () => {
     }));
   }, []);
 
+  const addProject = useCallback((project: Omit<Project, 'id'>) => {
+    const newProject: Project = {
+      ...project,
+      id: Date.now().toString()
+    };
+    setResumeData(prev => ({
+      ...prev,
+      projects: [...prev.projects, newProject]
+    }));
+  }, []);
+
+  const updateProject = useCallback((id: string, updates: Partial<Project>) => {
+    setResumeData(prev => ({
+      ...prev,
+      projects: prev.projects.map(project => 
+        project.id === id ? { ...project, ...updates } : project
+      )
+    }));
+  }, []);
+
+  const removeProject = useCallback((id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      projects: prev.projects.filter(project => project.id !== id)
+    }));
+  }, []);
+
   const removeSkill = useCallback((id: string) => {
     setResumeData(prev => ({
       ...prev,
@@ -171,6 +199,10 @@ export const useResumeData = () => {
     // Certificates (10 points)
     if (resumeData.certificates.length > 0) score += 10;
 
+    // Projects (10 points) 
+    if (resumeData.projects.length > 0) score += 5;
+    if (resumeData.projects.some(proj => proj.description.length > 50)) score += 5;
+
     return Math.round((score / maxScore) * 100);
   }, [resumeData]);
 
@@ -183,6 +215,10 @@ export const useResumeData = () => {
         return resumeData.experience.length > 0;
       case 'education':
         return resumeData.education.length > 0;
+      case 'certificates':
+        return resumeData.certificates.length > 0;
+      case 'projects':
+        return resumeData.projects.length > 0;
       case 'skills':
         return resumeData.skills.length >= 3;
       case 'summary':
@@ -209,6 +245,9 @@ export const useResumeData = () => {
     addCertificate,
     updateCertificate,
     removeCertificate,
+    addProject,
+    updateProject,
+    removeProject,
     addSkill,
     updateSkill,
     removeSkill,

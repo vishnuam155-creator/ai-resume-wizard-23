@@ -42,6 +42,18 @@ export interface Certificate {
   url?: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  technologies: string[];
+  startDate: string;
+  endDate?: string;
+  isOngoing: boolean;
+  url?: string;
+  githubUrl?: string;
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -55,10 +67,11 @@ export interface ResumeData {
   experience: Experience[];
   education: Education[];
   certificates: Certificate[];
+  projects: Project[];
   skills: Skill[];
 }
 
-export type ResumeStep = 'contacts' | 'experience' | 'education' | 'skills' | 'summary' | 'finalize';
+export type ResumeStep = 'contacts' | 'experience' | 'education' | 'certificates' | 'projects' | 'skills' | 'summary' | 'finalize';
 
 export interface ResumeStepInfo {
   id: ResumeStep;

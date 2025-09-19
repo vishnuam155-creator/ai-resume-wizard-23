@@ -191,11 +191,52 @@ export const ResumePreview = ({ data }: ResumePreviewProps) => {
                     <div>
                       <h4 className="font-medium text-gray-800">{cert.name}</h4>
                       <div className="text-sm text-gray-600">{cert.issuer}</div>
+                      {cert.credentialId && (
+                        <div className="text-xs text-gray-500">ID: {cert.credentialId}</div>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500">
                       {formatDate(cert.issueDate)}
                       {cert.expirationDate && ` - ${formatDate(cert.expirationDate)}`}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Projects */}
+          {data.projects.length > 0 && (
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-3 uppercase tracking-wide">
+                PROJECTS
+              </h2>
+              <div className="space-y-4">
+                {data.projects.map((project) => (
+                  <div key={project.id}>
+                    <div className="flex justify-between items-start mb-1">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{project.name}</h3>
+                        <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-1">
+                          {project.technologies.map((tech, index) => (
+                            <span key={index} className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500 text-right">
+                        <div>{formatDate(project.startDate)} - {project.isOngoing ? 'Ongoing' : formatDate(project.endDate || '')}</div>
+                        {project.url && <div className="text-xs">Live Demo</div>}
+                        {project.githubUrl && <div className="text-xs">GitHub</div>}
+                      </div>
+                    </div>
+                    {project.description && (
+                      <div 
+                        className="text-sm text-gray-700 leading-relaxed mt-2"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(project.description) }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
