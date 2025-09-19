@@ -1,8 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ResumeData } from '@/types/resume';
+import { ResumePreview } from '@/components/ResumePreview';
 import { Download, Eye, Share, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import html2pdf from 'html2pdf.js';
 
 interface FinalizeFormProps {
   data: ResumeData;
@@ -12,20 +15,39 @@ interface FinalizeFormProps {
 export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   const { toast } = useToast();
 
-  const handleDownloadPDF = () => {
-    // Mock PDF generation - in real app, this would generate actual PDF
-    toast({
-      title: "PDF Downloaded!",
-      description: "Your resume has been saved as a PDF file.",
-    });
-  };
+  const handleDownloadPDF = async () => {
+    const resumeElement = document.getElementById('resume-preview-pdf');
+    if (!resumeElement) {
+      toast({
+        title: "Error",
+        description: "Resume preview not found. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handlePreview = () => {
-    // Mock preview - in real app, this would open a preview modal
-    toast({
-      title: "Preview Mode",
-      description: "Opening resume preview...",
-    });
+    try {
+      const opt = {
+        margin: 0.5,
+        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+      };
+
+      await html2pdf().set(opt).from(resumeElement).save();
+      
+      toast({
+        title: "PDF Downloaded!",
+        description: "Your resume has been saved as a PDF file.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "There was an error generating the PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleShare = () => {
@@ -117,17 +139,28 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
 
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button
-          onClick={handlePreview}
-          variant="outline"
-          className="h-12 text-left flex items-center space-x-3"
-        >
-          <Eye className="w-5 h-5 text-primary" />
-          <div>
-            <div className="font-medium">Preview Resume</div>
-            <div className="text-xs text-muted-foreground">View before download</div>
-          </div>
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="h-12 text-left flex items-center space-x-3"
+            >
+              <Eye className="w-5 h-5 text-primary" />
+              <div>
+                <div className="font-medium">Preview Resume</div>
+                <div className="text-xs text-muted-foreground">View before download</div>
+              </div>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Resume Preview</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <ResumePreview data={data} />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Button
           onClick={handleDownloadPDF}
@@ -152,6 +185,13 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
             <div className="text-xs text-muted-foreground">Copy shareable link</div>
           </div>
         </Button>
+      </div>
+
+      {/* Hidden Resume for PDF Generation */}
+      <div className="hidden">
+        <div id="resume-preview-pdf">
+          <ResumePreview data={data} />
+        </div>
       </div>
 
       {score < 40 && (
