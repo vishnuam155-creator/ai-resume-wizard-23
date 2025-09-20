@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ResumeData } from '@/types/resume';
 import { ResumePreview } from '@/components/ResumePreview';
+import { ProfessionalResumeTemplate } from '@/components/ProfessionalResumeTemplate';
 import { Download, Eye, Share, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import html2pdf from 'html2pdf.js';
@@ -30,9 +31,25 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       const opt = {
         margin: 0.5,
         filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+        image: { 
+          type: 'jpeg' as const, 
+          quality: 1.0 
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          allowTaint: true,
+          dpi: 300,
+          height: 11 * 96, // 11 inches at 96 DPI
+          width: 8.5 * 96  // 8.5 inches at 96 DPI
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'a4', 
+          orientation: 'portrait' as const,
+          compress: true
+        }
       };
 
       await html2pdf().set(opt).from(resumeElement).save();
@@ -190,7 +207,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       {/* Hidden Resume for PDF Generation */}
       <div className="hidden">
         <div id="resume-preview-pdf">
-          <ResumePreview data={data} />
+          <ProfessionalResumeTemplate data={data} />
         </div>
       </div>
 
