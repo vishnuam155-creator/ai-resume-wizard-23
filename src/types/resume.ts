@@ -57,7 +57,7 @@ export interface Project {
 export interface Skill {
   id: string;
   name: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert' | 'Not specified';
   category: string;
 }
 

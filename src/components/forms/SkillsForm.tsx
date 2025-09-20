@@ -29,7 +29,7 @@ const skillCategories = [
   'Other'
 ];
 
-const skillLevels: Array<Skill['level']> = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+const skillLevels: Array<Skill['level']> = ['Not specified', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
 
 export const SkillsForm = ({ 
   data, 
@@ -39,7 +39,7 @@ export const SkillsForm = ({
 }: SkillsFormProps) => {
   const [newSkill, setNewSkill] = useState<Omit<Skill, 'id'>>({
     name: '',
-    level: 'Intermediate',
+    level: 'Not specified',
     category: 'Technical Skills'
   });
 
@@ -48,7 +48,7 @@ export const SkillsForm = ({
       onAddSkill(newSkill);
       setNewSkill({
         name: '',
-        level: 'Intermediate',
+        level: 'Not specified',
         category: 'Technical Skills'
       });
     }
@@ -153,7 +153,9 @@ export const SkillsForm = ({
                     className="px-3 py-1 text-sm group hover:bg-destructive/10 transition-colors"
                   >
                     <span className="mr-2">{skill.name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">({skill.level})</span>
+                    {skill.level !== 'Not specified' && (
+                      <span className="text-xs text-muted-foreground mr-2">({skill.level})</span>
+                    )}
                     <button
                       onClick={() => onRemoveSkill(skill.id)}
                       className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
