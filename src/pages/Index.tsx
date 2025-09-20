@@ -148,7 +148,7 @@ const Index = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-8">
           {/* Left Panel - Form */}
-          <div className="xl:col-span-2 order-2 xl:order-1">
+          <div className="xl:col-span-2 order-1 xl:order-1">
             <Card className="p-4 sm:p-6 lg:p-8 shadow-medium border border-border">
               {renderStepForm()}
               
@@ -177,7 +177,7 @@ const Index = () => {
           </div>
 
           {/* Right Panel - Preview & Score */}
-          <div className="space-y-4 lg:space-y-6 order-1 xl:order-2">
+          <div className="space-y-4 lg:space-y-6 order-2 xl:order-2">
             <ResumeScore score={score} />
             <div className="xl:sticky xl:top-6">
               <ResumePreview data={resumeData} />
