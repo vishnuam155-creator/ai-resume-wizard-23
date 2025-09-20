@@ -10,12 +10,12 @@ interface ResumeStepperProps {
 
 const steps: ResumeStepInfo[] = [
   { id: 'contacts', title: 'Contacts', description: 'Personal information', isCompleted: false, isActive: false },
+  { id: 'summary', title: 'Summary', description: 'Professional summary', isCompleted: false, isActive: false },
   { id: 'experience', title: 'Experience', description: 'Work history', isCompleted: false, isActive: false },
   { id: 'education', title: 'Education', description: 'Academic background', isCompleted: false, isActive: false },
-  { id: 'certificates', title: 'Certificates', description: 'Certifications & licenses', isCompleted: false, isActive: false },
   { id: 'projects', title: 'Projects', description: 'Personal & side projects', isCompleted: false, isActive: false },
+  { id: 'certificates', title: 'Certificates', description: 'Certifications & licenses', isCompleted: false, isActive: false },
   { id: 'skills', title: 'Skills', description: 'Technical & soft skills', isCompleted: false, isActive: false },
-  { id: 'summary', title: 'Summary', description: 'Professional summary', isCompleted: false, isActive: false },
   { id: 'finalize', title: 'Finalize', description: 'Review & download', isCompleted: false, isActive: false },
 ];
 
