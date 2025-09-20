@@ -42,7 +42,7 @@ const Index = () => {
     getStepCompletionStatus
   } = useResumeData();
 
-  const steps: ResumeStep[] = ['contacts', 'experience', 'education', 'certificates', 'projects', 'skills', 'summary', 'finalize'];
+  const steps: ResumeStep[] = ['contacts', 'summary', 'experience', 'education', 'projects', 'certificates', 'skills', 'finalize'];
   const currentStepIndex = steps.indexOf(currentStep);
   const score = calculateCompletionScore();
 
