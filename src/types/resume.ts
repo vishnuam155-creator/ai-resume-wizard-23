@@ -69,6 +69,7 @@ export interface ResumeData {
   certificates: Certificate[];
   projects: Project[];
   skills: Skill[];
+  photo?: string; // Base64 encoded photo
 }
 
 export type ResumeStep = 'contacts' | 'experience' | 'education' | 'certificates' | 'projects' | 'skills' | 'summary' | 'finalize';

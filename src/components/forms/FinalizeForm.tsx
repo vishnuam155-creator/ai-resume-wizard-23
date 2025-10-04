@@ -4,8 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ResumeData } from '@/types/resume';
 import { ResumePreview } from '@/components/ResumePreview';
 import { ProfessionalResumeTemplate } from '@/components/ProfessionalResumeTemplate';
-import { Download, Eye, Share, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { ProfessionalResumeTemplateWithPhoto } from '@/components/ProfessionalResumeTemplateWithPhoto';
+import { Download, Eye, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 
 interface FinalizeFormProps {
@@ -15,9 +17,49 @@ interface FinalizeFormProps {
 
 export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   const { toast } = useToast();
+  const [resumeFormat, setResumeFormat] = useState<'with-photo' | 'without-photo'>('without-photo');
+  const [photoPreview, setPhotoPreview] = useState<string | null>(data.photo || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please upload an image file (JPG, PNG, etc.)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
+      toast({
+        title: "Photo Uploaded",
+        description: "Your photo has been added to the resume",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleDownloadPDF = async () => {
-    const resumeElement = document.getElementById('resume-preview-pdf');
+    const elementId = resumeFormat === 'with-photo' ? 'resume-preview-pdf-with-photo' : 'resume-preview-pdf';
+    const resumeElement = document.getElementById(elementId);
+    
     if (!resumeElement) {
       toast({
         title: "Error",
@@ -27,10 +69,19 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       return;
     }
 
+    if (resumeFormat === 'with-photo' && !photoPreview) {
+      toast({
+        title: "Photo Required",
+        description: "Please upload a photo for the resume with photo format",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const opt = {
         margin: 0.5,
-        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume.pdf`,
+        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${resumeFormat}.pdf`,
         image: { 
           type: 'jpeg' as const, 
           quality: 1.0 
@@ -41,8 +92,8 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
           letterRendering: true,
           allowTaint: true,
           dpi: 300,
-          height: 11 * 96, // 11 inches at 96 DPI
-          width: 8.5 * 96  // 8.5 inches at 96 DPI
+          height: 11 * 96,
+          width: 8.5 * 96
         },
         jsPDF: { 
           unit: 'in', 
@@ -56,7 +107,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       
       toast({
         title: "PDF Downloaded!",
-        description: "Your resume has been saved as a PDF file.",
+        description: `Your resume has been saved as a PDF file ${resumeFormat === 'with-photo' ? 'with photo' : 'without photo'}.`,
       });
     } catch (error) {
       toast({
@@ -154,6 +205,96 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
         </div>
       </Card>
 
+      {/* Resume Format Selection */}
+      <Card className="p-6 border border-border shadow-soft">
+        <h3 className="font-semibold text-foreground mb-4">Choose Resume Format</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <button
+            onClick={() => setResumeFormat('without-photo')}
+            className={`p-4 border-2 rounded-lg transition-all ${
+              resumeFormat === 'without-photo'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <FileText className={`w-8 h-8 ${resumeFormat === 'without-photo' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="font-medium text-foreground">Without Photo</div>
+              <div className="text-xs text-muted-foreground text-center">Classic professional format</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setResumeFormat('with-photo')}
+            className={`p-4 border-2 rounded-lg transition-all ${
+              resumeFormat === 'with-photo'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <UserCircle className={`w-8 h-8 ${resumeFormat === 'with-photo' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="font-medium text-foreground">With Photo</div>
+              <div className="text-xs text-muted-foreground text-center">Modern format with profile picture</div>
+            </div>
+          </button>
+        </div>
+
+        {/* Photo Upload Section */}
+        {resumeFormat === 'with-photo' && (
+          <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30">
+            <div className="flex items-start space-x-4">
+              {photoPreview ? (
+                <div className="relative">
+                  <img 
+                    src={photoPreview} 
+                    alt="Profile preview" 
+                    className="w-24 h-24 rounded-lg object-cover border-2 border-primary"
+                  />
+                  <button
+                    onClick={() => {
+                      setPhotoPreview(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-background">
+                  <User className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <h4 className="font-medium text-foreground mb-2">Upload Your Photo</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose a professional photo (JPG, PNG, max 5MB)
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {photoPreview ? 'Change Photo' : 'Upload Photo'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Dialog>
@@ -171,10 +312,14 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Resume Preview</DialogTitle>
+              <DialogTitle>Resume Preview ({resumeFormat === 'with-photo' ? 'With Photo' : 'Without Photo'})</DialogTitle>
             </DialogHeader>
             <div className="mt-4">
-              <ResumePreview data={data} />
+              {resumeFormat === 'with-photo' ? (
+                <ProfessionalResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+              ) : (
+                <ResumePreview data={data} />
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -208,6 +353,9 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       <div className="hidden">
         <div id="resume-preview-pdf">
           <ProfessionalResumeTemplate data={data} />
+        </div>
+        <div id="resume-preview-pdf-with-photo">
+          <ProfessionalResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
         </div>
       </div>
 
