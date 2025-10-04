@@ -1,11 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ResumeData } from '@/types/resume';
-import { ResumePreview } from '@/components/ResumePreview';
 import { ProfessionalResumeTemplate } from '@/components/ProfessionalResumeTemplate';
 import { ProfessionalResumeTemplateWithPhoto } from '@/components/ProfessionalResumeTemplateWithPhoto';
-import { Download, Eye, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle } from 'lucide-react';
+import { ModernResumeTemplate } from '@/components/templates/ModernResumeTemplate';
+import { ModernResumeTemplateWithPhoto } from '@/components/templates/ModernResumeTemplateWithPhoto';
+import { CreativeResumeTemplate } from '@/components/templates/CreativeResumeTemplate';
+import { CreativeResumeTemplateWithPhoto } from '@/components/templates/CreativeResumeTemplateWithPhoto';
+import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle, Sparkles, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
@@ -15,9 +18,13 @@ interface FinalizeFormProps {
   score: number;
 }
 
+type TemplateType = 'professional' | 'modern' | 'creative';
+
 export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   const { toast } = useToast();
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [resumeFormat, setResumeFormat] = useState<'with-photo' | 'without-photo'>('without-photo');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('professional');
   const [photoPreview, setPhotoPreview] = useState<string | null>(data.photo || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,8 +63,31 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
     reader.readAsDataURL(file);
   };
 
+  const getTemplateComponent = () => {
+    const templates = {
+      professional: {
+        withPhoto: ProfessionalResumeTemplateWithPhoto,
+        withoutPhoto: ProfessionalResumeTemplate,
+      },
+      modern: {
+        withPhoto: ModernResumeTemplateWithPhoto,
+        withoutPhoto: ModernResumeTemplate,
+      },
+      creative: {
+        withPhoto: CreativeResumeTemplateWithPhoto,
+        withoutPhoto: CreativeResumeTemplate,
+      },
+    };
+
+    const Template = resumeFormat === 'with-photo' 
+      ? templates[selectedTemplate].withPhoto 
+      : templates[selectedTemplate].withoutPhoto;
+
+    return Template;
+  };
+
   const handleDownloadPDF = async () => {
-    const elementId = resumeFormat === 'with-photo' ? 'resume-preview-pdf-with-photo' : 'resume-preview-pdf';
+    const elementId = `resume-preview-pdf-${selectedTemplate}-${resumeFormat}`;
     const resumeElement = document.getElementById(elementId);
     
     if (!resumeElement) {
@@ -81,7 +111,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
     try {
       const opt = {
         margin: 0.5,
-        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${resumeFormat}.pdf`,
+        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.pdf`,
         image: { 
           type: 'jpeg' as const, 
           quality: 1.0 
@@ -107,7 +137,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       
       toast({
         title: "PDF Downloaded!",
-        description: `Your resume has been saved as a PDF file ${resumeFormat === 'with-photo' ? 'with photo' : 'without photo'}.`,
+        description: `Your ${selectedTemplate} resume has been saved ${resumeFormat === 'with-photo' ? 'with photo' : 'without photo'}.`,
       });
     } catch (error) {
       toast({
@@ -207,132 +237,230 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
 
       {/* Resume Format Selection */}
       <Card className="p-6 border border-border shadow-soft">
-        <h3 className="font-semibold text-foreground mb-4">Choose Resume Format</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <button
-            onClick={() => setResumeFormat('without-photo')}
-            className={`p-4 border-2 rounded-lg transition-all ${
-              resumeFormat === 'without-photo'
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
+        <h3 className="font-semibold text-foreground mb-4">Choose Resume Format & Template</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Button
+            onClick={() => {
+              setResumeFormat('without-photo');
+              setShowTemplateModal(true);
+            }}
+            variant="outline"
+            className="h-auto p-6 flex flex-col items-center space-y-3 hover:border-primary hover:bg-primary/5"
           >
-            <div className="flex flex-col items-center space-y-2">
-              <FileText className={`w-8 h-8 ${resumeFormat === 'without-photo' ? 'text-primary' : 'text-muted-foreground'}`} />
-              <div className="font-medium text-foreground">Without Photo</div>
-              <div className="text-xs text-muted-foreground text-center">Classic professional format</div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setResumeFormat('with-photo')}
-            className={`p-4 border-2 rounded-lg transition-all ${
-              resumeFormat === 'with-photo'
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="flex flex-col items-center space-y-2">
-              <UserCircle className={`w-8 h-8 ${resumeFormat === 'with-photo' ? 'text-primary' : 'text-muted-foreground'}`} />
-              <div className="font-medium text-foreground">With Photo</div>
-              <div className="text-xs text-muted-foreground text-center">Modern format with profile picture</div>
-            </div>
-          </button>
-        </div>
-
-        {/* Photo Upload Section */}
-        {resumeFormat === 'with-photo' && (
-          <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30">
-            <div className="flex items-start space-x-4">
-              {photoPreview ? (
-                <div className="relative">
-                  <img 
-                    src={photoPreview} 
-                    alt="Profile preview" 
-                    className="w-24 h-24 rounded-lg object-cover border-2 border-primary"
-                  />
-                  <button
-                    onClick={() => {
-                      setPhotoPreview(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-background">
-                  <User className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
-              
-              <div className="flex-1">
-                <h4 className="font-medium text-foreground mb-2">Upload Your Photo</h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Choose a professional photo (JPG, PNG, max 5MB)
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {photoPreview ? 'Change Photo' : 'Upload Photo'}
-                </Button>
+            <FileText className="w-10 h-10 text-primary" />
+            <div>
+              <div className="font-medium text-foreground">Resume Without Photo</div>
+              <div className="text-xs text-muted-foreground text-center mt-1">
+                Classic professional format
               </div>
             </div>
-          </div>
-        )}
+          </Button>
+
+          <Button
+            onClick={() => {
+              setResumeFormat('with-photo');
+              setShowTemplateModal(true);
+            }}
+            variant="outline"
+            className="h-auto p-6 flex flex-col items-center space-y-3 hover:border-primary hover:bg-primary/5"
+          >
+            <UserCircle className="w-10 h-10 text-primary" />
+            <div>
+              <div className="font-medium text-foreground">Resume With Photo</div>
+              <div className="text-xs text-muted-foreground text-center mt-1">
+                Modern format with profile picture
+              </div>
+            </div>
+          </Button>
+        </div>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="h-12 text-left flex items-center space-x-3"
-            >
-              <Eye className="w-5 h-5 text-primary" />
-              <div>
-                <div className="font-medium">Preview Resume</div>
-                <div className="text-xs text-muted-foreground">View before download</div>
-              </div>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Resume Preview ({resumeFormat === 'with-photo' ? 'With Photo' : 'Without Photo'})</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              {resumeFormat === 'with-photo' ? (
-                <ProfessionalResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
-              ) : (
-                <ResumePreview data={data} />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+      {/* Template Selection Modal */}
+      <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Choose Your Template ({resumeFormat === 'with-photo' ? 'With Photo' : 'Without Photo'})
+            </DialogTitle>
+          </DialogHeader>
 
+          {/* Photo Upload Section for "with-photo" format */}
+          {resumeFormat === 'with-photo' && (
+            <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
+              <div className="flex items-start space-x-4">
+                {photoPreview ? (
+                  <div className="relative">
+                    <img 
+                      src={photoPreview} 
+                      alt="Profile preview" 
+                      className="w-24 h-24 rounded-lg object-cover border-2 border-primary"
+                    />
+                    <button
+                      onClick={() => {
+                        setPhotoPreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-background">
+                    <User className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+                
+                <div className="flex-1">
+                  <h4 className="font-medium text-foreground mb-2">Upload Your Photo</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Choose a professional photo (JPG, PNG, max 5MB)
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {photoPreview ? 'Change Photo' : 'Upload Photo'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Template Previews */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Professional Template */}
+            <button
+              onClick={() => {
+                setSelectedTemplate('professional');
+                setShowTemplateModal(false);
+              }}
+              className={`group relative border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg ${
+                selectedTemplate === 'professional' ? 'border-primary' : 'border-border'
+              }`}
+            >
+              <div className="aspect-[8.5/11] bg-white overflow-hidden">
+                <div className="scale-[0.15] origin-top-left w-[566.67%]">
+                  {resumeFormat === 'with-photo' ? (
+                    <ProfessionalResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+                  ) : (
+                    <ProfessionalResumeTemplate data={data} />
+                  )}
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <div className="flex items-center justify-between text-white">
+                  <div className="flex items-center space-x-2">
+                    <Briefcase className="w-4 h-4" />
+                    <span className="font-medium text-sm">Professional</span>
+                  </div>
+                  {selectedTemplate === 'professional' && (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Modern Template */}
+            <button
+              onClick={() => {
+                setSelectedTemplate('modern');
+                setShowTemplateModal(false);
+              }}
+              className={`group relative border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg ${
+                selectedTemplate === 'modern' ? 'border-primary' : 'border-border'
+              }`}
+            >
+              <div className="aspect-[8.5/11] bg-white overflow-hidden">
+                <div className="scale-[0.15] origin-top-left w-[566.67%]">
+                  {resumeFormat === 'with-photo' ? (
+                    <ModernResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+                  ) : (
+                    <ModernResumeTemplate data={data} />
+                  )}
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <div className="flex items-center justify-between text-white">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="font-medium text-sm">Modern</span>
+                  </div>
+                  {selectedTemplate === 'modern' && (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Creative Template */}
+            <button
+              onClick={() => {
+                setSelectedTemplate('creative');
+                setShowTemplateModal(false);
+              }}
+              className={`group relative border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg ${
+                selectedTemplate === 'creative' ? 'border-primary' : 'border-border'
+              }`}
+            >
+              <div className="aspect-[8.5/11] bg-white overflow-hidden">
+                <div className="scale-[0.15] origin-top-left w-[566.67%]">
+                  {resumeFormat === 'with-photo' ? (
+                    <CreativeResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+                  ) : (
+                    <CreativeResumeTemplate data={data} />
+                  )}
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <div className="flex items-center justify-between text-white">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="font-medium text-sm">Creative</span>
+                  </div>
+                  {selectedTemplate === 'creative' && (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <Button variant="outline" onClick={() => setShowTemplateModal(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Button
           onClick={handleDownloadPDF}
           className="h-12 text-left flex items-center space-x-3"
-          disabled={score < 40}
+          disabled={score < 40 || (resumeFormat === 'with-photo' && !photoPreview)}
         >
           <Download className="w-5 h-5" />
           <div>
             <div className="font-medium">Download PDF</div>
-            <div className="text-xs opacity-80">Professional format</div>
+            <div className="text-xs opacity-80">
+              {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} - {resumeFormat === 'with-photo' ? 'With Photo' : 'Without Photo'}
+            </div>
           </div>
         </Button>
 
@@ -349,13 +477,30 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
         </Button>
       </div>
 
-      {/* Hidden Resume for PDF Generation */}
+      {/* Hidden Resume Templates for PDF Generation */}
       <div className="hidden">
-        <div id="resume-preview-pdf">
+        {/* Professional Templates */}
+        <div id="resume-preview-pdf-professional-without-photo">
           <ProfessionalResumeTemplate data={data} />
         </div>
-        <div id="resume-preview-pdf-with-photo">
+        <div id="resume-preview-pdf-professional-with-photo">
           <ProfessionalResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+        </div>
+
+        {/* Modern Templates */}
+        <div id="resume-preview-pdf-modern-without-photo">
+          <ModernResumeTemplate data={data} />
+        </div>
+        <div id="resume-preview-pdf-modern-with-photo">
+          <ModernResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+        </div>
+
+        {/* Creative Templates */}
+        <div id="resume-preview-pdf-creative-without-photo">
+          <CreativeResumeTemplate data={data} />
+        </div>
+        <div id="resume-preview-pdf-creative-with-photo">
+          <CreativeResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
         </div>
       </div>
 
