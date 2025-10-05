@@ -110,18 +110,20 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
 
     try {
       const opt = {
-        margin: 0.5,
+        margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number],
         filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.pdf`,
         image: { 
           type: 'jpeg' as const, 
-          quality: 1.0 
+          quality: 0.98 
         },
         html2canvas: { 
           scale: 2,
           useCORS: true,
           letterRendering: true,
           allowTaint: true,
-          dpi: 300
+          logging: false,
+          dpi: 300,
+          windowHeight: resumeElement.scrollHeight
         },
         jsPDF: { 
           unit: 'in', 
@@ -130,10 +132,10 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
           compress: true
         },
         pagebreak: { 
-          mode: ['avoid-all', 'css', 'legacy'],
+          mode: ['css', 'legacy'],
           before: '.page-break-before',
           after: '.page-break-after',
-          avoid: '.no-page-break'
+          avoid: ['h2', 'h3', '.no-page-break']
         }
       };
 
