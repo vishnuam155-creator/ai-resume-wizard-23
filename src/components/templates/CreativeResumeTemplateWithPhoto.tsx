@@ -7,7 +7,38 @@ interface CreativeResumeTemplateWithPhotoProps {
 export const CreativeResumeTemplateWithPhoto = ({ data }: CreativeResumeTemplateWithPhotoProps) => {
   const formatDescription = (description: string) => {
     if (!description) return '';
-    return description
+    
+    // Split by lines and process bullet points
+    const lines = description.split('\n');
+    let html = '';
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if line is a bullet point
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) {
+          html += '<ul style="margin: 0.5em 0; padding-left: 1.5em;">';
+          inList = true;
+        }
+        const content = line.substring(2).trim();
+        html += `<li style="margin: 0.25em 0;">${content}</li>`;
+      } else if (line) {
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+        html += line + '<br/>';
+      }
+    }
+    
+    if (inList) {
+      html += '</ul>';
+    }
+    
+    // Apply text formatting
+    return html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/__(.*?)__/g, '<u>$1</u>')
@@ -49,10 +80,11 @@ export const CreativeResumeTemplateWithPhoto = ({ data }: CreativeResumeTemplate
             {data.contacts.phone && <span>📱 {data.contacts.phone}</span>}
             {data.contacts.location && <span>📍 {data.contacts.location}</span>}
           </div>
-          {(data.contacts.website || data.contacts.linkedin) && (
+          {(data.contacts.website || data.contacts.linkedin || data.contacts.github) && (
             <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
               {data.contacts.website && <span>🌐 {data.contacts.website}</span>}
               {data.contacts.linkedin && <span>💼 {data.contacts.linkedin}</span>}
+              {data.contacts.github && <span>💻 {data.contacts.github}</span>}
             </div>
           )}
         </div>
@@ -118,6 +150,11 @@ export const CreativeResumeTemplateWithPhoto = ({ data }: CreativeResumeTemplate
                   <p className="text-xs text-gray-500">
                     {formatDate(edu.startDate)} - {edu.isCurrentlyStudying ? 'Present' : formatDate(edu.endDate)}
                   </p>
+                  {edu.description && (
+                    <div className="text-xs text-gray-600 leading-relaxed mt-1">
+                      <div dangerouslySetInnerHTML={{ __html: formatDescription(edu.description) }} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -159,10 +196,16 @@ export const CreativeResumeTemplateWithPhoto = ({ data }: CreativeResumeTemplate
                 {data.projects.map((project) => (
                   <div key={project.id}>
                     <h3 className="text-sm font-bold text-blue-600">{project.name}</h3>
+                    {(project.url || project.githubUrl) && (
+                      <div className="text-xs text-gray-500">
+                        {project.url && <div>🌐 {project.url}</div>}
+                        {project.githubUrl && <div>💻 {project.githubUrl}</div>}
+                      </div>
+                    )}
                     {project.description && (
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {project.description.replace(/<[^>]*>/g, '')}
-                      </p>
+                      <div className="text-xs text-gray-600 mt-1">
+                        <div dangerouslySetInnerHTML={{ __html: formatDescription(project.description) }} />
+                      </div>
                     )}
                   </div>
                 ))}

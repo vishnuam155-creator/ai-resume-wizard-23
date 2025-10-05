@@ -7,7 +7,38 @@ interface ProfessionalResumeTemplateProps {
 export const ProfessionalResumeTemplate = ({ data }: ProfessionalResumeTemplateProps) => {
   const formatDescription = (description: string) => {
     if (!description) return '';
-    return description
+    
+    // Split by lines and process bullet points
+    const lines = description.split('\n');
+    let html = '';
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if line is a bullet point
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) {
+          html += '<ul style="margin: 0.5em 0; padding-left: 1.5em;">';
+          inList = true;
+        }
+        const content = line.substring(2).trim();
+        html += `<li style="margin: 0.25em 0;">${content}</li>`;
+      } else if (line) {
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+        html += line + '<br/>';
+      }
+    }
+    
+    if (inList) {
+      html += '</ul>';
+    }
+    
+    // Apply text formatting
+    return html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/__(.*?)__/g, '<u>$1</u>')
@@ -53,6 +84,9 @@ export const ProfessionalResumeTemplate = ({ data }: ProfessionalResumeTemplateP
           </div>
           {data.contacts.linkedin && (
             <div>LinkedIn: {data.contacts.linkedin}</div>
+          )}
+          {data.contacts.github && (
+            <div>GitHub: {data.contacts.github}</div>
           )}
         </div>
       </div>
@@ -115,21 +149,28 @@ export const ProfessionalResumeTemplate = ({ data }: ProfessionalResumeTemplateP
           </h2>
           <div className="space-y-3">
             {data.education.map((edu) => (
-              <div key={edu.id} className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-800">
-                    {edu.degree} {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`}
-                  </h3>
-                  <p className="text-sm text-gray-700">{edu.institution}</p>
-                  {edu.gpa && (
-                    <p className="text-xs text-gray-600">GPA: {edu.gpa}</p>
-                  )}
-                </div>
-                <div className="text-right text-sm text-gray-600">
+              <div key={edu.id}>
+                <div className="flex justify-between items-start">
                   <div>
-                    {formatDate(edu.startDate)} - {edu.isCurrentlyStudying ? 'Present' : formatDate(edu.endDate)}
+                    <h3 className="text-base font-semibold text-gray-800">
+                      {edu.degree} {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`}
+                    </h3>
+                    <p className="text-sm text-gray-700">{edu.institution}</p>
+                    {edu.gpa && (
+                      <p className="text-xs text-gray-600">GPA: {edu.gpa}</p>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-600">
+                    <div>
+                      {formatDate(edu.startDate)} - {edu.isCurrentlyStudying ? 'Present' : formatDate(edu.endDate)}
+                    </div>
                   </div>
                 </div>
+                {edu.description && (
+                  <div className="text-sm text-gray-700 leading-relaxed mt-2">
+                    <div dangerouslySetInnerHTML={{ __html: formatDescription(edu.description) }} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -194,7 +235,10 @@ export const ProfessionalResumeTemplate = ({ data }: ProfessionalResumeTemplateP
                   <div>
                     <h3 className="text-base font-semibold text-gray-800">{project.name}</h3>
                     {project.url && (
-                      <p className="text-xs text-gray-600">{project.url}</p>
+                      <p className="text-xs text-gray-600">URL: {project.url}</p>
+                    )}
+                    {project.githubUrl && (
+                      <p className="text-xs text-gray-600">GitHub: {project.githubUrl}</p>
                     )}
                   </div>
                   {(project.startDate || project.endDate) && (

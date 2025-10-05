@@ -7,7 +7,38 @@ interface ModernResumeTemplateProps {
 export const ModernResumeTemplate = ({ data }: ModernResumeTemplateProps) => {
   const formatDescription = (description: string) => {
     if (!description) return '';
-    return description
+    
+    // Split by lines and process bullet points
+    const lines = description.split('\n');
+    let html = '';
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if line is a bullet point
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) {
+          html += '<ul style="margin: 0.5em 0; padding-left: 1.5em;">';
+          inList = true;
+        }
+        const content = line.substring(2).trim();
+        html += `<li style="margin: 0.25em 0;">${content}</li>`;
+      } else if (line) {
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+        html += line + '<br/>';
+      }
+    }
+    
+    if (inList) {
+      html += '</ul>';
+    }
+    
+    // Apply text formatting
+    return html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/__(.*?)__/g, '<u>$1</u>')
@@ -41,6 +72,7 @@ export const ModernResumeTemplate = ({ data }: ModernResumeTemplateProps) => {
               {data.contacts.location && <div>{data.contacts.location}</div>}
               {data.contacts.website && <div className="break-words">{data.contacts.website}</div>}
               {data.contacts.linkedin && <div className="break-words">{data.contacts.linkedin}</div>}
+              {data.contacts.github && <div className="break-words">{data.contacts.github}</div>}
             </div>
           </div>
 
@@ -150,6 +182,11 @@ export const ModernResumeTemplate = ({ data }: ModernResumeTemplateProps) => {
                         {formatDate(edu.startDate)} - {edu.isCurrentlyStudying ? 'Present' : formatDate(edu.endDate)}
                       </div>
                     </div>
+                    {edu.description && (
+                      <div className="text-sm text-gray-700 leading-relaxed mt-2">
+                        <div dangerouslySetInnerHTML={{ __html: formatDescription(edu.description) }} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -164,6 +201,12 @@ export const ModernResumeTemplate = ({ data }: ModernResumeTemplateProps) => {
                 {data.projects.map((project) => (
                   <div key={project.id}>
                     <h3 className="text-base font-semibold">{project.name}</h3>
+                    {(project.url || project.githubUrl) && (
+                      <div className="text-xs text-gray-600">
+                        {project.url && <div>URL: {project.url}</div>}
+                        {project.githubUrl && <div>GitHub: {project.githubUrl}</div>}
+                      </div>
+                    )}
                     {project.description && (
                       <div className="text-sm text-gray-700 leading-relaxed mt-1">
                         <div dangerouslySetInnerHTML={{ __html: formatDescription(project.description) }} />
