@@ -121,15 +121,19 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
           useCORS: true,
           letterRendering: true,
           allowTaint: true,
-          dpi: 300,
-          height: 11 * 96,
-          width: 8.5 * 96
+          dpi: 300
         },
         jsPDF: { 
           unit: 'in', 
-          format: 'a4', 
+          format: 'letter', 
           orientation: 'portrait' as const,
           compress: true
+        },
+        pagebreak: { 
+          mode: ['avoid-all', 'css', 'legacy'],
+          before: '.page-break-before',
+          after: '.page-break-after',
+          avoid: '.no-page-break'
         }
       };
 
