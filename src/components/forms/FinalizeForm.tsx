@@ -12,7 +12,8 @@ import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, User
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
-import htmlDocx from 'html-docx-js/dist/html-docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface FinalizeFormProps {
   data: ResumeData;
@@ -157,18 +158,6 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   };
 
   const handleDownloadDOCX = async () => {
-    const elementId = `resume-preview-pdf-${selectedTemplate}-${resumeFormat}`;
-    const resumeElement = document.getElementById(elementId);
-    
-    if (!resumeElement) {
-      toast({
-        title: "Error",
-        description: "Resume preview not found. Please try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (resumeFormat === 'with-photo' && !photoPreview) {
       toast({
         title: "Photo Required",
@@ -179,38 +168,224 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
     }
 
     try {
-      const htmlContent = resumeElement.innerHTML;
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: Arial, sans-serif; }
-            * { box-sizing: border-box; }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
-      `;
+      const sections = [];
 
-      const docx = htmlDocx.asBlob(fullHtml);
-      const url = URL.createObjectURL(docx);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Contact Information
+      sections.push(
+        new Paragraph({
+          text: `${data.contacts.firstName} ${data.contacts.lastName}`,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun(`${data.contacts.email} | ${data.contacts.phone}`),
+          ],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun(`${data.contacts.location}`),
+          ],
+        })
+      );
+
+      if (data.contacts.website || data.contacts.linkedin || data.contacts.github) {
+        const links = [];
+        if (data.contacts.website) links.push(data.contacts.website);
+        if (data.contacts.linkedin) links.push(data.contacts.linkedin);
+        if (data.contacts.github) links.push(data.contacts.github);
+        sections.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun(links.join(' | '))],
+          })
+        );
+      }
+
+      sections.push(new Paragraph({ text: '' }));
+
+      // Professional Summary
+      if (data.summary) {
+        sections.push(
+          new Paragraph({
+            text: 'Professional Summary',
+            heading: HeadingLevel.HEADING_2,
+          }),
+          new Paragraph({
+            text: data.summary,
+          }),
+          new Paragraph({ text: '' })
+        );
+      }
+
+      // Experience
+      if (data.experience.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Work Experience',
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+
+        data.experience.forEach((exp) => {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: exp.jobTitle, bold: true }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${exp.company} - ${exp.location}`, italics: true }),
+              ],
+            }),
+            new Paragraph({
+              text: `${exp.startDate} - ${exp.isCurrentJob ? 'Present' : exp.endDate}`,
+            }),
+            new Paragraph({
+              text: exp.description,
+            }),
+            new Paragraph({ text: '' })
+          );
+        });
+      }
+
+      // Education
+      if (data.education.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Education',
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+
+        data.education.forEach((edu) => {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${edu.degree} in ${edu.fieldOfStudy}`, bold: true }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: edu.institution, italics: true }),
+              ],
+            }),
+            new Paragraph({
+              text: `${edu.startDate} - ${edu.isCurrentlyStudying ? 'Present' : edu.endDate}`,
+            })
+          );
+          if (edu.description) {
+            sections.push(new Paragraph({ text: edu.description }));
+          }
+          sections.push(new Paragraph({ text: '' }));
+        });
+      }
+
+      // Skills
+      if (data.skills.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Skills',
+            heading: HeadingLevel.HEADING_2,
+          }),
+          new Paragraph({
+            text: data.skills.map(s => s.name).join(', '),
+          }),
+          new Paragraph({ text: '' })
+        );
+      }
+
+      // Projects
+      if (data.projects.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Projects',
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+
+        data.projects.forEach((project) => {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: project.name, bold: true }),
+              ],
+            }),
+            new Paragraph({
+              text: project.description,
+            })
+          );
+          if (project.technologies.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Technologies: ${project.technologies.join(', ')}`,
+              })
+            );
+          }
+          if (project.url || project.githubUrl) {
+            const links = [];
+            if (project.url) links.push(`URL: ${project.url}`);
+            if (project.githubUrl) links.push(`GitHub: ${project.githubUrl}`);
+            sections.push(
+              new Paragraph({
+                text: links.join(' | '),
+              })
+            );
+          }
+          sections.push(new Paragraph({ text: '' }));
+        });
+      }
+
+      // Certificates
+      if (data.certificates.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Certificates',
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+
+        data.certificates.forEach((cert) => {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: cert.name, bold: true }),
+              ],
+            }),
+            new Paragraph({
+              text: `${cert.issuer} - ${cert.issueDate}`,
+            })
+          );
+          if (cert.url) {
+            sections.push(
+              new Paragraph({
+                text: `URL: ${cert.url}`,
+              })
+            );
+          }
+          sections.push(new Paragraph({ text: '' }));
+        });
+      }
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: sections,
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.docx`);
 
       toast({
         title: "DOCX Downloaded!",
         description: `Your ${selectedTemplate} resume has been saved ${resumeFormat === 'with-photo' ? 'with photo' : 'without photo'}.`,
       });
     } catch (error) {
+      console.error('DOCX generation error:', error);
       toast({
         title: "Download Failed",
         description: "There was an error generating the DOCX. Please try again.",
