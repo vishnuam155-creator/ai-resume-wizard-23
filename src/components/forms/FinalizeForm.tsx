@@ -12,6 +12,7 @@ import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, User
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
+import htmlDocx from 'html-docx-js/dist/html-docx';
 
 interface FinalizeFormProps {
   data: ResumeData;
@@ -26,6 +27,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   const [resumeFormat, setResumeFormat] = useState<'with-photo' | 'without-photo'>('without-photo');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('professional');
   const [photoPreview, setPhotoPreview] = useState<string | null>(data.photo || null);
+  const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx'>('pdf');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +151,69 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       toast({
         title: "Download Failed",
         description: "There was an error generating the PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadDOCX = async () => {
+    const elementId = `resume-preview-pdf-${selectedTemplate}-${resumeFormat}`;
+    const resumeElement = document.getElementById(elementId);
+    
+    if (!resumeElement) {
+      toast({
+        title: "Error",
+        description: "Resume preview not found. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (resumeFormat === 'with-photo' && !photoPreview) {
+      toast({
+        title: "Photo Required",
+        description: "Please upload a photo for the resume with photo format",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const htmlContent = resumeElement.innerHTML;
+      const fullHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; }
+            * { box-sizing: border-box; }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+        </body>
+        </html>
+      `;
+
+      const docx = htmlDocx.asBlob(fullHtml);
+      const url = URL.createObjectURL(docx);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "DOCX Downloaded!",
+        description: `Your ${selectedTemplate} resume has been saved ${resumeFormat === 'with-photo' ? 'with photo' : 'without photo'}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "There was an error generating the DOCX. Please try again.",
         variant: "destructive"
       });
     }
@@ -454,16 +519,39 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
         </DialogContent>
       </Dialog>
 
+      {/* Download Format Selection */}
+      <Card className="p-6 border border-border shadow-soft">
+        <h3 className="font-semibold text-foreground mb-4">Choose Download Format</h3>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Button
+            onClick={() => setDownloadFormat('pdf')}
+            variant={downloadFormat === 'pdf' ? 'default' : 'outline'}
+            className="h-auto p-4 flex flex-col items-center space-y-2"
+          >
+            <FileText className="w-8 h-8" />
+            <div className="font-medium">PDF Format</div>
+          </Button>
+          <Button
+            onClick={() => setDownloadFormat('docx')}
+            variant={downloadFormat === 'docx' ? 'default' : 'outline'}
+            className="h-auto p-4 flex flex-col items-center space-y-2"
+          >
+            <FileText className="w-8 h-8" />
+            <div className="font-medium">DOCX Format</div>
+          </Button>
+        </div>
+      </Card>
+
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Button
-          onClick={handleDownloadPDF}
+          onClick={downloadFormat === 'pdf' ? handleDownloadPDF : handleDownloadDOCX}
           className="h-12 text-left flex items-center space-x-3"
           disabled={score < 40 || (resumeFormat === 'with-photo' && !photoPreview)}
         >
           <Download className="w-5 h-5" />
           <div>
-            <div className="font-medium">Download PDF</div>
+            <div className="font-medium">Download {downloadFormat.toUpperCase()}</div>
             <div className="text-xs opacity-80">
               {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} - {resumeFormat === 'with-photo' ? 'With Photo' : 'Without Photo'}
             </div>
