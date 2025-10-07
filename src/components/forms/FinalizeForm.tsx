@@ -8,7 +8,8 @@ import { ModernResumeTemplate } from '@/components/templates/ModernResumeTemplat
 import { ModernResumeTemplateWithPhoto } from '@/components/templates/ModernResumeTemplateWithPhoto';
 import { CreativeResumeTemplate } from '@/components/templates/CreativeResumeTemplate';
 import { CreativeResumeTemplateWithPhoto } from '@/components/templates/CreativeResumeTemplateWithPhoto';
-import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle, Sparkles, Briefcase } from 'lucide-react';
+import { CompactResumeTemplate } from '@/components/templates/CompactResumeTemplate';
+import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle, Sparkles, Briefcase, AlignLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import jsPDF from 'jspdf';
@@ -21,7 +22,7 @@ interface FinalizeFormProps {
   score: number;
 }
 
-type TemplateType = 'professional' | 'modern' | 'creative';
+type TemplateType = 'professional' | 'modern' | 'creative' | 'compact';
 
 export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
   const { toast } = useToast();
@@ -80,6 +81,10 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
       creative: {
         withPhoto: CreativeResumeTemplateWithPhoto,
         withoutPhoto: CreativeResumeTemplate,
+      },
+      compact: {
+        withPhoto: CompactResumeTemplate,
+        withoutPhoto: CompactResumeTemplate,
       },
     };
 
@@ -763,7 +768,7 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
           )}
 
           {/* Template Previews */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             {/* Professional Template */}
             <button
               onClick={() => {
@@ -862,6 +867,35 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
                 </div>
               </div>
             </button>
+
+            {/* Compact Template */}
+            <button
+              onClick={() => {
+                setSelectedTemplate('compact');
+                setShowTemplateModal(false);
+              }}
+              className={`group relative border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg ${
+                selectedTemplate === 'compact' ? 'border-primary' : 'border-border'
+              }`}
+            >
+              <div className="aspect-[8.5/11] bg-white overflow-hidden">
+                <div className="scale-[0.15] origin-top-left w-[566.67%]">
+                  <CompactResumeTemplate data={data} />
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <div className="flex items-center justify-between text-white">
+                  <div className="flex items-center space-x-2">
+                    <AlignLeft className="w-4 h-4" />
+                    <span className="font-medium text-sm">Compact</span>
+                  </div>
+                  {selectedTemplate === 'compact' && (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                </div>
+              </div>
+            </button>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -948,6 +982,14 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
         </div>
         <div id="resume-preview-pdf-creative-with-photo">
           <CreativeResumeTemplateWithPhoto data={{ ...data, photo: photoPreview || undefined }} />
+        </div>
+
+        {/* Compact Template */}
+        <div id="resume-preview-pdf-compact-without-photo">
+          <CompactResumeTemplate data={data} />
+        </div>
+        <div id="resume-preview-pdf-compact-with-photo">
+          <CompactResumeTemplate data={data} />
         </div>
       </div>
 
