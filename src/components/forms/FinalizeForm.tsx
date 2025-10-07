@@ -11,7 +11,8 @@ import { CreativeResumeTemplateWithPhoto } from '@/components/templates/Creative
 import { Download, Share, FileText, CheckCircle, AlertCircle, Upload, User, UserCircle, Sparkles, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
-import html2pdf from 'html2pdf.js';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -100,39 +101,229 @@ export const FinalizeForm = ({ data, score }: FinalizeFormProps) => {
     }
 
     try {
-      // Get the appropriate resume template element
-      const elementId = `resume-preview-pdf-${selectedTemplate}-${resumeFormat}`;
-      const element = document.getElementById(elementId);
-      
-      if (!element) {
-        throw new Error('Resume template not found');
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'letter'
+      });
+
+      let yPos = 40;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      const contentWidth = pageWidth - (2 * margin);
+
+      // Header - Name
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.contacts.firstName} ${data.contacts.lastName}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 20;
+
+      // Contact Information
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const contactInfo = `${data.contacts.email} | ${data.contacts.phone} | ${data.contacts.location}`;
+      doc.text(contactInfo, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 15;
+
+      // Links
+      if (data.contacts.website || data.contacts.linkedin || data.contacts.github) {
+        const links = [];
+        if (data.contacts.website) links.push(data.contacts.website);
+        if (data.contacts.linkedin) links.push(data.contacts.linkedin);
+        if (data.contacts.github) links.push(data.contacts.github);
+        doc.text(links.join(' | '), pageWidth / 2, yPos, { align: 'center' });
+        yPos += 25;
+      } else {
+        yPos += 15;
       }
 
-      // Configure html2pdf options to maintain text layers and styling
-      const opt = {
-        margin: 0,
-        filename: `${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          logging: false
-        },
-        jsPDF: { 
-          unit: 'pt', 
-          format: 'letter', 
-          orientation: 'portrait' as const
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      // Add photo if with-photo format
+      if (resumeFormat === 'with-photo' && photoPreview) {
+        try {
+          doc.addImage(photoPreview, 'JPEG', pageWidth - margin - 80, 40, 80, 80);
+        } catch (e) {
+          console.log('Could not add photo to PDF');
+        }
+      }
+
+      // Professional Summary
+      if (data.summary) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PROFESSIONAL SUMMARY', margin, yPos);
+        yPos += 15;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const summaryLines = doc.splitTextToSize(data.summary, contentWidth);
+        doc.text(summaryLines, margin, yPos);
+        yPos += summaryLines.length * 12 + 15;
+      }
+
+      // Check if we need a new page
+      const checkPageBreak = (requiredSpace: number) => {
+        if (yPos + requiredSpace > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage();
+          yPos = 40;
+        }
       };
 
-      // Generate PDF with text layers preserved
-      await html2pdf().set(opt).from(element).save();
+      // Work Experience
+      if (data.experience.length > 0) {
+        checkPageBreak(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('WORK EXPERIENCE', margin, yPos);
+        yPos += 15;
+
+        data.experience.forEach((exp) => {
+          checkPageBreak(60);
+          
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text(exp.jobTitle, margin, yPos);
+          yPos += 14;
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'italic');
+          doc.text(`${exp.company} - ${exp.location}`, margin, yPos);
+          yPos += 12;
+
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${exp.startDate} - ${exp.isCurrentJob ? 'Present' : exp.endDate}`, margin, yPos);
+          yPos += 14;
+
+          const descLines = doc.splitTextToSize(exp.description, contentWidth);
+          doc.text(descLines, margin, yPos);
+          yPos += descLines.length * 12 + 15;
+        });
+      }
+
+      // Education
+      if (data.education.length > 0) {
+        checkPageBreak(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('EDUCATION', margin, yPos);
+        yPos += 15;
+
+        data.education.forEach((edu) => {
+          checkPageBreak(50);
+          
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${edu.degree} in ${edu.fieldOfStudy}`, margin, yPos);
+          yPos += 12;
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'italic');
+          doc.text(edu.institution, margin, yPos);
+          yPos += 12;
+
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${edu.startDate} - ${edu.isCurrentlyStudying ? 'Present' : edu.endDate}`, margin, yPos);
+          yPos += 12;
+
+          if (edu.description) {
+            const eduDescLines = doc.splitTextToSize(edu.description, contentWidth);
+            doc.text(eduDescLines, margin, yPos);
+            yPos += eduDescLines.length * 12 + 10;
+          }
+          yPos += 5;
+        });
+      }
+
+      // Skills
+      if (data.skills.length > 0) {
+        checkPageBreak(40);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SKILLS', margin, yPos);
+        yPos += 15;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const skillsText = data.skills.map(s => s.name).join(', ');
+        const skillsLines = doc.splitTextToSize(skillsText, contentWidth);
+        doc.text(skillsLines, margin, yPos);
+        yPos += skillsLines.length * 12 + 15;
+      }
+
+      // Projects
+      if (data.projects.length > 0) {
+        checkPageBreak(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PROJECTS', margin, yPos);
+        yPos += 15;
+
+        data.projects.forEach((project) => {
+          checkPageBreak(50);
+          
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(project.name, margin, yPos);
+          yPos += 12;
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          const projDescLines = doc.splitTextToSize(project.description, contentWidth);
+          doc.text(projDescLines, margin, yPos);
+          yPos += projDescLines.length * 12 + 8;
+
+          if (project.technologies.length > 0) {
+            doc.setFont('helvetica', 'italic');
+            doc.text(`Technologies: ${project.technologies.join(', ')}`, margin, yPos);
+            yPos += 12;
+          }
+
+          if (project.url || project.githubUrl) {
+            const links = [];
+            if (project.url) links.push(`URL: ${project.url}`);
+            if (project.githubUrl) links.push(`GitHub: ${project.githubUrl}`);
+            doc.setFont('helvetica', 'normal');
+            doc.text(links.join(' | '), margin, yPos);
+            yPos += 12;
+          }
+          yPos += 5;
+        });
+      }
+
+      // Certificates
+      if (data.certificates.length > 0) {
+        checkPageBreak(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CERTIFICATES', margin, yPos);
+        yPos += 15;
+
+        data.certificates.forEach((cert) => {
+          checkPageBreak(40);
+          
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(cert.name, margin, yPos);
+          yPos += 12;
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${cert.issuer} - ${cert.issueDate}`, margin, yPos);
+          yPos += 12;
+
+          if (cert.url) {
+            doc.text(`URL: ${cert.url}`, margin, yPos);
+            yPos += 12;
+          }
+          yPos += 5;
+        });
+      }
+
+      // Save the PDF
+      doc.save(`${data.contacts.firstName}_${data.contacts.lastName}_Resume_${selectedTemplate}_${resumeFormat}.pdf`);
 
       toast({
         title: "PDF Downloaded!",
-        description: `Your ${selectedTemplate} resume has been saved with searchable text and original styling.`,
+        description: `Your ${selectedTemplate} resume has been saved with fully searchable text.`,
       });
     } catch (error) {
       console.error('PDF generation error:', error);
